@@ -13,7 +13,7 @@ struct intrusive_ptr {
 
   intrusive_ptr() noexcept = default;
 
-  intrusive_ptr(T* p, bool add_ref = true) noexcept : obj_pointer(p) {
+  intrusive_ptr(T* p, bool add_ref = true) : obj_pointer(p) {
     if (add_ref)
       intrusive_ptr_add_ref(obj_pointer);
   }
@@ -174,7 +174,7 @@ public:
   }
 
   unsigned int use_count() const noexcept {
-    return counter.load(std::memory_order_seq_cst);
+    return counter.load(std::memory_order_acquire);
   }
 
 protected:
@@ -189,11 +189,11 @@ private:
   intrusive_ptr_release(const intrusive_ref_counter<Derived>* p) noexcept;
 
   void inc() const noexcept {
-    counter.fetch_add(1, std::memory_order_seq_cst);
+    counter.fetch_add(1, std::memory_order_release);
   }
 
   details::stored_type dec() const noexcept {
-    return counter.fetch_add(-1, std::memory_order_seq_cst);
+    return counter.fetch_sub(1, std::memory_order_release);
   }
 };
 
@@ -204,6 +204,6 @@ void intrusive_ptr_add_ref(const intrusive_ref_counter<Derived>* p) noexcept {
 
 template <class Derived>
 void intrusive_ptr_release(const intrusive_ref_counter<Derived>* p) noexcept {
-  if (p->dec() == 0)
+  if (p->dec() == 1)
     delete static_cast<const Derived*>(p);
 }
