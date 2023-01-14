@@ -14,7 +14,7 @@ struct intrusive_ptr {
   intrusive_ptr() noexcept = default;
 
   intrusive_ptr(T* p, bool add_ref = true) : obj_pointer(p) {
-    if (add_ref)
+    if (add_ref && obj_pointer != nullptr)
       intrusive_ptr_add_ref(obj_pointer);
   }
 
@@ -102,7 +102,7 @@ struct intrusive_ptr {
     return obj_pointer;
   }
   T* detach() noexcept {
-    T* current_obj_pointer = static_cast<T*>(obj_pointer);
+    T* current_obj_pointer = obj_pointer;
     obj_pointer = nullptr;
     return current_obj_pointer;
   }
@@ -189,11 +189,11 @@ private:
   intrusive_ptr_release(const intrusive_ref_counter<Derived>* p) noexcept;
 
   void inc() const noexcept {
-    counter.fetch_add(1, std::memory_order_release);
+    counter.fetch_add(1, std::memory_order_relaxed);
   }
 
   details::stored_type dec() const noexcept {
-    return counter.fetch_sub(1, std::memory_order_release);
+    return counter.fetch_sub(1, std::memory_order_acq_rel);
   }
 };
 
